@@ -3,23 +3,158 @@ import streamlit as st
 import pandas as pd
 import requests
 from datetime import datetime, timedelta
+import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="Weather Contest Dashboard", layout="wide")
 st.title("🌤️ SWM Weather Contest Dashboard")
 st.caption("Based on ECMWF and GFS models | Period: 8:30 AM to 8:30 AM IST")
 
-# Define contest locations
+# Full list of locations
 locations = {
-    "Nungambakkam": (13.0632, 80.2495),
-    "Meenambakkam": (12.9941, 80.1808),
-    "Sriperumbudur": (13.0300, 79.9495),
-    "Mahabalipuram": (12.6208, 80.1930),
-    "Gummidipoondi": (13.4072, 80.1085),
-    "Cholavaram": (13.2150, 80.1833),
-    "Dharmapuri": (12.1211, 78.1580),
-    "Ooty PTO": (11.4102, 76.6950),
-    "Kodaikanal": (10.2381, 77.4892),
-    "Pasighat": (28.0667, 95.3333)
+    "Nungambakkam": [
+        13.0632,
+        80.2495
+    ],
+    "Meenambakkam": [
+        12.9941,
+        80.1808
+    ],
+    "Sriperumbudur": [
+        13.03,
+        79.9495
+    ],
+    "Mahabalipuram": [
+        12.6208,
+        80.193
+    ],
+    "Gummidipoondi": [
+        13.4072,
+        80.1085
+    ],
+    "Cholavaram": [
+        13.215,
+        80.1833
+    ],
+    "Tiruttani": [
+        13.1806,
+        79.6042
+    ],
+    "Vellore": [
+        12.9165,
+        79.1325
+    ],
+    "Tiruvannamalai": [
+        12.2253,
+        79.0747
+    ],
+    "Karur": [
+        10.9601,
+        78.0766
+    ],
+    "Namakkal": [
+        11.2196,
+        78.1675
+    ],
+    "Tiruchirappalli": [
+        10.7905,
+        78.7047
+    ],
+    "Tirupattur": [
+        12.4987,
+        78.5708
+    ],
+    "Tiruchengode": [
+        11.3855,
+        77.8945
+    ],
+    "Erode": [
+        11.341,
+        77.7172
+    ],
+    "Coimbatore": [
+        11.0168,
+        76.9558
+    ],
+    "Pollachi": [
+        10.658,
+        77.006
+    ],
+    "Valparai": [
+        10.3269,
+        76.9515
+    ],
+    "Dharmapuri": [
+        12.1211,
+        78.158
+    ],
+    "Tirunelveli": [
+        8.7139,
+        77.7567
+    ],
+    "Palayamkottai": [
+        8.7302,
+        77.7384
+    ],
+    "Tenkasi": [
+        8.9591,
+        77.315
+    ],
+    "Sankarankovil": [
+        9.1715,
+        77.5456
+    ],
+    "Papanasam": [
+        10.7658,
+        79.1341
+    ],
+    "Kodaikanal": [
+        10.2381,
+        77.4892
+    ],
+    "Ooty PTO": [
+        11.4102,
+        76.695
+    ],
+    "Pasighat": [
+        28.0667,
+        95.3333
+    ],
+    "Mumbai": [
+        19.076,
+        72.8777
+    ],
+    "Kolkata": [
+        22.5726,
+        88.3639
+    ],
+    "Goa": [
+        15.2993,
+        74.124
+    ],
+    "Ahmedabad": [
+        23.0225,
+        72.5714
+    ],
+    "Hyderabad": [
+        17.385,
+        78.4867
+    ],
+    "Nagpur": [
+        21.1458,
+        79.0882
+    ],
+    "Bengaluru": [
+        12.9716,
+        77.5946
+    ],
+    "Pune": [
+        18.5204,
+        73.8567
+    ],
+    "Jaipur": [
+        26.9124,
+        75.7873
+    ]
 }
 
 start_time = datetime.now().replace(hour=8, minute=30, second=0, microsecond=0)
@@ -70,20 +205,29 @@ for place, (lat, lon) in locations.items():
 
 df = pd.DataFrame(forecast_data)
 
-# Highlight summary metrics
-chennai_places = ["Nungambakkam", "Meenambakkam", "Sriperumbudur", "Mahabalipuram", "Gummidipoondi", "Cholavaram"]
-tn_candidates = [row for row in forecast_data if row["Place"] not in ["Pasighat", "Ooty PTO", "Kodaikanal"]]
-tn_max = max(tn_candidates, key=lambda x: x["Final Temp (°C)"]) if tn_candidates else {}
-
-col1, col2 = st.columns(2)
-with col1:
-    st.metric("🌡️ Chennai Max Temp", f"{df.loc[df['Place'].isin(chennai_places), 'Final Temp (°C)'].max()} °C")
-    st.metric("☔ Chennai Rainy Stations", f"{df.loc[df['Place'].isin(chennai_places), 'Rain ≥2.5mm?'].tolist().count('Yes')} / 6")
-
-with col2:
-    if tn_max:
-        st.metric("🌡️ TN Max Temp", f"{tn_max['Final Temp (°C)']} °C @ {tn_max['Place']}")
-    st.metric("⛈️ TN Rainy Stations", f"{df[df['Rain ≥2.5mm?']=='Yes'].shape[0]} / {len(df)}")
-
 st.subheader("📊 Forecast Table")
-st.dataframe(df.set_index("Place"))
+if not df.empty:
+    st.dataframe(df.set_index("Place"), use_container_width=True)
+
+    chennai_places = ["Nungambakkam", "Meenambakkam", "Sriperumbudur", "Mahabalipuram", "Gummidipoondi", "Cholavaram"]
+    tn_hills = ["Kodaikanal", "Ooty PTO"]
+    tn_max_pool = [p for p in df["Place"] if p not in tn_hills and "Tamil Nadu" not in p and p not in ["Pasighat", "Mumbai", "Kolkata", "Goa", "Ahmedabad", "Hyderabad", "Nagpur", "Bengaluru", "Pune", "Jaipur"]]
+    tn_max_df = df[df["Place"].isin(tn_max_pool)]
+    tn_max = tn_max_df.loc[tn_max_df["Final Temp (°C)"].idxmax()] if not tn_max_df.empty else None
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("🌡️ Chennai Max Temp", f"{df.loc[df['Place'].isin(chennai_places), 'Final Temp (°C)'].max()} °C")
+        st.metric("☔ Chennai Rainy Stations", f"{df.loc[df['Place'].isin(chennai_places), 'Rain ≥2.5mm?'].tolist().count('Yes')} / 6")
+    with col2:
+        if tn_max is not None:
+            st.metric("🌡️ TN Max Temp", f"{tn_max['Final Temp (°C)']} °C @ {tn_max['Place']}")
+        st.metric("⛈️ TN Rainy Stations", f"{df[df['Rain ≥2.5mm?']=='Yes'].shape[0]} / {len(df)}")
+
+    st.subheader("📈 Temperature Comparison")
+    st.bar_chart(df.set_index("Place")[["ECMWF Max Temp (°C)", "GFS Max Temp (°C)"]])
+
+    st.subheader("🌧️ Rainfall Comparison")
+    st.bar_chart(df.set_index("Place")[["ECMWF Rain (mm)", "GFS Rain (mm)"]])
+else:
+    st.warning("⚠️ No forecast data available. Check API or internet connection.")
